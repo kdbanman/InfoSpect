@@ -1,7 +1,5 @@
 package infospect;
 
-import java.lang.reflect.Array;
-
 /**
  * Data structure representing the information content (patterns and
  * repetition) of an array.
@@ -27,7 +25,7 @@ import java.lang.reflect.Array;
  * repeated blocks can now be up to length N-1.  Length N blocks are ignored
  * because a length N toroidal array is defined as a repetition of length N. 
  * Consider the length 9 toroidal array
- *   {2,1,0,2,2,2,1,0,2
+ *   {2,1,0,2,2,2,1,0,2}
  * Repetition analysis (assuming I have made no errors) yields:
  * --------------------------------------
  * | Repeating block | Repetition Count |
@@ -72,6 +70,10 @@ import java.lang.reflect.Array;
  * |      4     |         5        |
  * ---------------------------------
  * The maximal repetition corresponds to minimal information content.
+ * For contrast, consider the array
+ *   {2,1,0,1,2,0}
+ * It has no repeating blocks.  Length 1 blocks are repeated, but they are not
+ * compressible blocks because they are already minimally represented.
  * 
  * @author kdbanman
  */
