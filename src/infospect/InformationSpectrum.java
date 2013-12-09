@@ -5,8 +5,8 @@ package infospect;
  * repetition) of an array.
  * 
  * Any length N array can have repeated blocks (subarrays) ranging in length
- * from length 2 to length floor(N/2).  Length 1 blocks are ignored for reasons
- * that will become obvious.  For instance, the length 9 array
+ * from length 2 to length N-1.  (Length 1 blocks are ignored for reasons that
+ * are explained later.)  For instance, the length 9 array
  *   {1,1,0,2,2,1,1,0,2}
  * has three length 2 blocks that repeat twice, {1.1}, {1,0}, and {0,2}, so 6
  * total length 2 block repetitions. It also has two length 3 blocks that repeat
@@ -43,6 +43,7 @@ package infospect;
  * |   2,2,1,0       |        2         |
  * |  2,1,0,2,2      |        2         |
  * |  2,2,1,0,2      |        2         |
+ * | 2,2,1,0,2,2     |        2         |
  * --------------------------------------
  * This reduces to an information spectrum of:
  * ---------------------------------
@@ -94,5 +95,14 @@ public class InformationSpectrum<T extends Comparable> {
      */
     public InformationSpectrum(T[] source, boolean toroidal) {
         
+    }
+    
+    private T toroidalAccess(T[] source, integer i) {
+        i = i % N;
+        if (i < 0) {
+            return source[N + i];
+        } else {
+            return source[i];
+        }
     }
 }
