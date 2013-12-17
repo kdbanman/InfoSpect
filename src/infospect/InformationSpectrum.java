@@ -84,9 +84,12 @@ package infospect;
  * 
  * @author kdbanman
  */
-public class InformationSpectrum {
+public class InformationSpectrum{
+    private final int[] sourceArray;
     // maximum possible size of block repeated within source array
     private final int maxBlockSize;
+    // minimum possible size of block repeated within source array (it's always 2)
+    private final int minBlockSize;
     // blockSizeFrequencies maps integer block sizes (ranging between 2 and
     // maxBlockSize) to integer frequencies of repetition of that block size.
     private final int[] blockSizeFrequencies;
@@ -102,28 +105,34 @@ public class InformationSpectrum {
      * analysis.
      */
     public InformationSpectrum(int[] source) {
+        sourceArray = source;
         maxBlockSize = source.length - 1;
+        minBlockSize = 2;
         blockSizeFrequencies = new int[source.length];
         
+        analyzeArray();
+    }
+    
+    protected void analyzeArray() {
         // for each block size
         for (int blockSize = 2; blockSize <= maxBlockSize; blockSize++) {
             // if a block is repeated at an index, then a pattern has been found
             // and the repeated block shouldn't be used to find other repetition
-            boolean[] patternFound = new boolean[source.length];
+            boolean[] patternFound = new boolean[sourceArray.length];
             // look for each block of length blockSize in the rest of the array
-            for (int matchSourceBlockStart = 0; matchSourceBlockStart < source.length; matchSourceBlockStart++) {
+            for (int matchSourceBlockStart = 0; matchSourceBlockStart < sourceArray.length; matchSourceBlockStart++) {
                 // ignore the patterns of this blockSize that are already found
                 if (patternFound[matchSourceBlockStart]) continue;
                 // look for the current block in the rest of the array
-                for (int potentialMatchBlockStart = 0; potentialMatchBlockStart < source.length; potentialMatchBlockStart++) {
+                for (int potentialMatchBlockStart = 0; potentialMatchBlockStart < sourceArray.length; potentialMatchBlockStart++) {
                     // don't look for yourself within yourself. that's silly.
                     if (potentialMatchBlockStart == matchSourceBlockStart) continue;
                     // if the first entries of the match source block and the block currently under
                     // inspection match, then continue inspection
-                    boolean potentialMatch = source[matchSourceBlockStart] == source[potentialMatchBlockStart];
+                    boolean potentialMatch = sourceArray[matchSourceBlockStart] == sourceArray[potentialMatchBlockStart];
                     if (potentialMatch) {
                         for (int i = 1; i < blockSize; i++) {
-                            potentialMatch = toroidalAccess(source, matchSourceBlockStart + i) == toroidalAccess(source, potentialMatchBlockStart + i);
+                            potentialMatch = toroidalAccess(sourceArray, matchSourceBlockStart + i) == toroidalAccess(sourceArray, potentialMatchBlockStart + i);
                             if (!potentialMatch) break;
                         }
                         if (potentialMatch) {
@@ -137,11 +146,26 @@ public class InformationSpectrum {
     }
     
     /**
+     * Returns the source array with which the InformationSpectrum was created.
+     */
+    public int[] getSourceArray() {
+        return sourceArray;
+    }
+    
+    /**
      * Returns the maximum size that a repeated block can be for the array with
      * which the InformationSpectrum was initialized.  (The minimum is 2.)
      */
     public int getMaxBlockSize() {
         return maxBlockSize;
+    }
+    
+    /**
+     * Returns the minimum size that a repeated block can be for the array with which
+     * the InformationSpectrum was initialized.  It's always 2.
+     */
+    public int getMinBlockSize() {
+        return 2;
     }
     
     /**
@@ -154,25 +178,39 @@ public class InformationSpectrum {
      * of the initializing array).  Invalid queries return -1.
      *
      */
-    public int getBlockSizeRepetitionCount(int blockSize) {
+    public int getBlockSizeFrequency(int blockSize) {
         if (blockSize >= 2 || blockSize <= maxBlockSize) {
             return blockSizeFrequencies[blockSize];
         } else {
-            System.out.println("InformationSpectrum Error: Cannot request negative block size frequency.");
-            return -1;
+            throw new ArrayIndexOutOfBoundsException("InformationSpectrum Error: Cannot request negative block size frequency.");
+        }
+    }
+    
+    /**
+     * Set the frequency of a particular block size.
+     */
+    protected void setBlockSizeFrequency(int blockSize, int frequency) {
+        if (blockSize >= 2 || blockSize <= maxBlockSize) {
+        blockSizeFrequencies[blockSize] = frequency;
+        } else {
+            throw new ArrayIndexOutOfBoundsException("InformationSpectrum Error: Cannot request negative block size frequency.");
+        }
+    }
+    
+    protected int toroidalIndex(int i) {
+        i = i % getSourceArray().length;
+        if (i < 0) {
+            return getSourceArray().length + i;
+        } else {
+            return i;
         }
     }
     
     /**
      * toroidal array accessor
      */
-    private int toroidalAccess(int[] source, int i) {
-        i = i % source.length;
-        if (i < 0) {
-            return source[source.length + i];
-        } else {
-            return source[i];
-        }
+    protected int toroidalAccess(int[] source, int i) {
+        return getSourceArray()[toroidalIndex(i)];
     }
     
     /**
@@ -196,81 +234,25 @@ public class InformationSpectrum {
         String stringRep = "Block Size - Repetition Count\n";
         for (int i = 2; i <= maxBlockSize; i++) {
             String blockSize = Integer.toString(i);
-            String freq = Integer.toString(getBlockSizeRepetitionCount(i));
+            String freq = Integer.toString(getBlockSizeFrequency(i));
             stringRep += blockSize + "           - ".substring(blockSize.length()) + freq + "\n";
         }
         return stringRep;
         
     }
     
-    /**
-     * Static wrapper of constructor so that library may be used statically, 
-     * returns the InformationSpectrum corresponding to the passed source array.
-     */
-    public static InformationSpectrum analyzeArray(int[] source) {
-        return new InformationSpectrum(source);
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {return true;}
+        if (o == null) {return false;}
+        if (this.getClass() == o.getClass()) {
+            return getSourceArray().equals(((InformationSpectrum)o).getSourceArray());
+        } 
+        return false;
     }
     
-    /**
-     *  Test passed array with command line output for feedback.
-     */
-    private static void testArray(int[] test) {
-        String testStr = "{";
-        for (int i : test) {
-            testStr += Integer.toString(i) + ",";
-        }
-        testStr = testStr.substring(0, testStr.length() - 1) + "}";
-        System.out.println("Analyzing " + testStr + "...");
-        InformationSpectrum trivial = analyzeArray(test);
-        System.out.println("Result:");
-        System.out.println(trivial);
-    }
-    
-    private static void runsPerSecond(int numberOfArrays, int arrayLength) {
-        
-        System.out.println("Creating " + numberOfArrays + " arrays of length " + arrayLength + "...");
-        // make a number of random test arrays of specified length
-        int[][] tests = new int[numberOfArrays][arrayLength];
-        for (int i = 0; i < numberOfArrays; i++) {
-            tests[i] = new int[arrayLength];
-            for (int j = 0; j < arrayLength; j++) {
-                tests[i][j] = (int)(Math.random() * 3);
-            }
-        }
-        
-        System.out.println("Processing arrays...");
-        long startTime = System.currentTimeMillis();
-        for (int i = 0; i < numberOfArrays; i++) {
-            InformationSpectrum test = new InformationSpectrum(tests[i]);
-        }
-        long finishTime = System.currentTimeMillis();
-        
-        long arraysPerSec = numberOfArrays * 1000 / (finishTime - startTime);
-        System.out.println("  " + (int) arraysPerSec + " arrays processed per second\n");
-    }
-    
-    private static void runTests() {
-        testArray(new int[]{1,1,1,1,1});
-        testArray(new int[]{1,1,0,1,1,0,1,1,0,2});
-        testArray(new int[]{0,1,1,0,1,1,0,1,1});
-        testArray(new int[]{0,1,2,2,1,0,0,1,2,2,1,1});
-        testArray(new int[]{2,1,0,2,2,2,1,0,2});
-        testArray(new int[]{22,11,0,22,22,22,11,0,22});
-        testArray(new int[]{2,1,0,1,2,0});
-        testArray(new int[]{9,8,7,8,9,7});
-        
-        runsPerSecond(10000, 10);
-        runsPerSecond(10000, 20);
-        runsPerSecond(5000, 50);
-        runsPerSecond(1000, 100);
-        runsPerSecond(200, 150);
-    }
-    
-    /**
-     * Convenience method to run hard-coded tests, including performance tests
-     * for your machine.
-     */
-    public static void main(String[] args) {
-        runTests();
+    @Override
+    public int hashCode() {
+        return getSourceArray().hashCode();
     }
 }
