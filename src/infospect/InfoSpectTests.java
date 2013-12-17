@@ -15,12 +15,15 @@ public class InfoSpectTests {
         for (int i : test) {
             testStr += Integer.toString(i) + ",";
         }
+        
         testStr = testStr.substring(0, testStr.length() - 1) + "}";
         System.out.println("Analyzing " + testStr + "...");
+        
         InformationSpectrum testSpect = new InformationSpectrum(test);
         System.out.println("Result:");
         System.out.println(testSpect);
-        testSpect = new ContiguousInformationSpectrum(test);
+        
+        testSpect = new InformationSpectrum(test, true);
         System.out.println("Contiguous Result:");
         System.out.println(testSpect);
     }
@@ -49,11 +52,19 @@ public class InfoSpectTests {
     }
     
     private static void runTests() {
+        // non-contiguous documentation example
+        testArray(new int[]{2,1,0,2,2,2,1,0,2});
+        
+        // contiguous documentation examples
+        testArray(new int[]{0,1,2,0,1,1});
+        testArray(new int[]{0,1,0,1,1,1,0,1});
+        
+        //both
         testArray(new int[]{1,1,1,1,1});
+        
         testArray(new int[]{1,1,0,1,1,0,1,1,0,2});
         testArray(new int[]{0,1,1,0,1,1,0,1,1});
         testArray(new int[]{0,1,2,2,1,0,0,1,2,2,1,1});
-        testArray(new int[]{2,1,0,2,2,2,1,0,2});
         testArray(new int[]{22,11,0,22,22,22,11,0,22});
         testArray(new int[]{2,1,0,1,2,0});
         testArray(new int[]{9,8,7,8,9,7});
