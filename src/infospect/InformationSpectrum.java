@@ -1,5 +1,7 @@
 package infospect;
 
+import java.util.Arrays;
+
 /* 
  * The following is repeated in the README.txt at
  * https://github.com/kdbanman/InfoSpect
@@ -186,7 +188,7 @@ public class InformationSpectrum {
     private final int[] blockSizeFrequencies;
     
     /**
-     * Generate *Toroidal* spectral analysis of information content for
+     * Generate *toroidal* spectral analysis of information content for
      * for the array passed at initialization (See README.txt at
      * https://github.com/kdbanman/InfoSpect for explanation and examples).
      *
@@ -200,9 +202,8 @@ public class InformationSpectrum {
     }
     
     /**
-     * Generate *Toroidal* spectral analysis of contiguous information content for
-     * for the array passed at initialization (See README.txt at
-     * https://github.com/kdbanman/InfoSpect for explanation and examples).
+     * Generate *toroidal* spectral analysis of information content for
+     * for the passed array (See README.txt at for explanation and examples).
      *
      * (Non-toroidal isn't useful to me right now, so it's not done.)
      * 
@@ -227,10 +228,10 @@ public class InformationSpectrum {
     }
     
     /**
-     * Returns the source array with which the InformationSpectrum was created.
+     * Returns a copy of the source array with which the InformationSpectrum was created.
      */
     public int[] getSourceArray() {
-        return sourceArray;
+        return Arrays.copyOf(sourceArray, sourceArray.length);
     }
     
     /**
@@ -251,12 +252,11 @@ public class InformationSpectrum {
     
     /**
      * Returns the frequency with which blocks of a given size were repeated
-     * within the initializing array (this corresponds to quering the Block
-     * Size / Repetition Count tables in the README.txt at 
-     * https://github.com/kdbanman/InfoSpect).
+     * within the initializing array (this corresponds to querying the Block
+     * Size / Repetition Count tables in the README.txt).
      *
-     * Valid block size parameters range from 2 to N-1 (where N is the length
-     * of the initializing array).  Invalid queries return -1.
+     * Valid block size parameters range from getMinBlockSize() to getMaxBlockSize().
+     * Invalid queries return -1.
      *
      */
     public int getBlockSizeFrequency(int blockSize) {
