@@ -258,10 +258,9 @@ public class InformationSpectrum {
         }
     }
     
-    //TODO: {0,1,1,0,1,1,0,1,1} is failing
     private void performContiguousAnalysis() {
         // for each block size
-        for (int blockSize = minBlockSize; blockSize <= getMaxBlockSize() / 2; blockSize++) {
+        for (int blockSize = minBlockSize; blockSize <= getMaxBlockSize(); blockSize++) {
             // remember matched blocks for each size (including repetitions) by start index
             // so that they are not matched twice
             boolean[] patternFound = new boolean[sourceArray.length];
@@ -294,12 +293,15 @@ public class InformationSpectrum {
                         break;
                     }
                 }
+                
+                //TODO: THIS FAILS when the source block start and the right boundary are closer together than the block size
+                //      EX:  source block at 1, right boundary at 0
                 // look for the current block in the previous (to the left) contiguous blocks of the same size
                      // look for first match to the left of the current block
                 for (int potentialMatchBlockStart = toroidalIndex(sourceBlockStart - blockSize);
                      // continue looking as long as the potential match block does not start or end inside or on the right boundary
-                     toroidalIndex(potentialMatchBlockStart + blockSize - 1) < sourceBlockStart
-                       || toroidalIndex(potentialMatchBlockStart) > rightBoundary;
+                     toroidalIndex(potentialMatchBlockStart + blockSize) < sourceBlockStart
+                        || potentialMatchBlockStart > rightBoundary;
                      // decrement the potential match block index one block size at a time
                      potentialMatchBlockStart = toroidalIndex(potentialMatchBlockStart - blockSize)) {
                     // check for match

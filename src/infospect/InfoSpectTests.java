@@ -26,6 +26,7 @@ public class InfoSpectTests {
         testSpect = new InformationSpectrum(test, true);
         System.out.println("Contiguous Result:");
         System.out.println(testSpect);
+        System.out.println("---------------------------------");
     }
     
     private static void runsPerSecond(int numberOfArrays, int arrayLength) {
@@ -51,8 +52,11 @@ public class InfoSpectTests {
         System.out.println("  " + (int) arraysPerSec + " arrays processed per second\n");
     }
     
-    private static void runTests() {
-        // non-contiguous documentation example
+    private static void runTests(boolean performanceTests) {
+        
+        // examples from documentation
+        
+        // non-contiguous
         testArray(new int[]{2,1,0,2,2,2,1,0,2});
         
         // contiguous documentation examples
@@ -62,6 +66,7 @@ public class InfoSpectTests {
         //both
         testArray(new int[]{1,1,1,1,1});
         
+        // examples not from documentation
         testArray(new int[]{1,1,0,1,1,0,1,1,0,2});
         testArray(new int[]{0,1,1,0,1,1,0,1,1});
         testArray(new int[]{0,1,2,2,1,0,0,1,2,2,1,1});
@@ -69,11 +74,13 @@ public class InfoSpectTests {
         testArray(new int[]{2,1,0,1,2,0});
         testArray(new int[]{9,8,7,8,9,7});
         
-        runsPerSecond(10000, 10);
-        runsPerSecond(10000, 20);
-        runsPerSecond(5000, 50);
-        runsPerSecond(1000, 100);
-        runsPerSecond(200, 150);
+        if (performanceTests) {
+            runsPerSecond(10000, 10);
+            runsPerSecond(10000, 20);
+            runsPerSecond(5000, 50);
+            runsPerSecond(1000, 100);
+            runsPerSecond(200, 150);
+        }
     }
     
     /**
@@ -81,6 +88,6 @@ public class InfoSpectTests {
      * for your machine.
      */
     public static void main(String[] args) {
-        runTests();
+        runTests(false);
     }
 }
