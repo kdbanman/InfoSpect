@@ -20,7 +20,7 @@ public class InfoSpectTests {
         System.out.println("Analyzing " + testStr + "...");
         
         InformationSpectrum testSpect = new InformationSpectrum(test);
-        System.out.println("Result:");
+        System.out.println("Non-Contiguous Result:");
         System.out.println(testSpect);
         
         testSpect = new InformationSpectrum(test, true);
@@ -41,7 +41,7 @@ public class InfoSpectTests {
             }
         }
         
-        System.out.println("Processing arrays...");
+        System.out.println("Processing arrays (non-contiguous analysis)...");
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < numberOfArrays; i++) {
             InformationSpectrum test = new InformationSpectrum(tests[i]);
@@ -49,6 +49,16 @@ public class InfoSpectTests {
         long finishTime = System.currentTimeMillis();
         
         long arraysPerSec = numberOfArrays * 1000 / (finishTime - startTime);
+        System.out.println("  " + (int) arraysPerSec + " arrays processed per second\n");
+        
+        System.out.println("Processing arrays (contiguous analysis)...");
+        startTime = System.currentTimeMillis();
+        for (int i = 0; i < numberOfArrays; i++) {
+            InformationSpectrum test = new InformationSpectrum(tests[i], true);
+        }
+        finishTime = System.currentTimeMillis();
+        
+        arraysPerSec = numberOfArrays * 1000 / (finishTime - startTime);
         System.out.println("  " + (int) arraysPerSec + " arrays processed per second\n");
     }
     
@@ -88,6 +98,6 @@ public class InfoSpectTests {
      * for your machine.
      */
     public static void main(String[] args) {
-        runTests(false);
+        runTests(true);
     }
 }

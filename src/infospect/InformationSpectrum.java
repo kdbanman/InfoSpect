@@ -226,6 +226,47 @@ public class InformationSpectrum {
         }
     }
     
+    /**
+     * Returns the source array with which the InformationSpectrum was created.
+     */
+    public int[] getSourceArray() {
+        return sourceArray;
+    }
+    
+    /**
+     * Returns the maximum size that a repeated block can be for the array with
+     * which the InformationSpectrum was initialized.
+     */
+    public int getMaxBlockSize() {
+        return maxBlockSize;
+    }
+    
+    /**
+     * Returns the minimum size that a repeated block can be for the array with which
+     * the InformationSpectrum was initialized.
+     */
+    public int getMinBlockSize() {
+        return minBlockSize;
+    }
+    
+    /**
+     * Returns the frequency with which blocks of a given size were repeated
+     * within the initializing array (this corresponds to quering the Block
+     * Size / Repetition Count tables in the README.txt at 
+     * https://github.com/kdbanman/InfoSpect).
+     *
+     * Valid block size parameters range from 2 to N-1 (where N is the length
+     * of the initializing array).  Invalid queries return -1.
+     *
+     */
+    public int getBlockSizeFrequency(int blockSize) {
+        if (blockSize >= minBlockSize || blockSize <= maxBlockSize) {
+            return blockSizeFrequencies[blockSize];
+        } else {
+            throw new ArrayIndexOutOfBoundsException("InformationSpectrum Error: Cannot request negative block size frequency.");
+        }
+    }
+    
     private void performAnalysis() {
         // for each block size
         for (int blockSize = minBlockSize; blockSize <= maxBlockSize; blockSize++) {
@@ -294,70 +335,34 @@ public class InformationSpectrum {
                     }
                 }
                 
-                //TODO: THIS FAILS when the source block start and the right boundary are closer together than the block size
-                //      EX:  source block at 1, right boundary at 0
-                // look for the current block in the previous (to the left) contiguous blocks of the same size
-                     // look for first match to the left of the current block
-                for (int potentialMatchBlockStart = toroidalIndex(sourceBlockStart - blockSize);
-                     // continue looking as long as the potential match block does not start or end inside or on the right boundary
-                     toroidalIndex(potentialMatchBlockStart + blockSize) < sourceBlockStart
-                        || potentialMatchBlockStart > rightBoundary;
-                     // decrement the potential match block index one block size at a time
-                     potentialMatchBlockStart = toroidalIndex(potentialMatchBlockStart - blockSize)) {
-                    // check for match
-                    if (blocksMatch(sourceBlockStart, potentialMatchBlockStart, blockSize)) {
-                        // mark the matching blocks as found
-                        patternFound[sourceBlockStart] = true;
-                        patternFound[potentialMatchBlockStart] = true;
-                        // increment the block size frequency
-                        setBlockSizeFrequency(blockSize, getBlockSizeFrequency(blockSize) + 1);
-                    } else {
-                        // stop looking matches if contiguity is broken
-                        break;
+                int elementsUnchecked = rightBoundary > sourceBlockStart ?
+                                           sourceArray.length - (rightBoundary - sourceBlockStart + 1) :
+                                           sourceBlockStart - rightBoundary - 1;
+                // look left of the source block for matches is long as there is a block
+                // left to check between the source block start and the right boundary
+                if (elementsUnchecked > blockSize) {
+                    // look for the current block in the previous (to the left) contiguous blocks of the same size
+                         // look for first match to the left of the current block
+                    for (int potentialMatchBlockStart = toroidalIndex(sourceBlockStart - blockSize);
+                         // continue looking as long as the potential match block does not start or end inside or on the right boundary
+                         toroidalIndex(potentialMatchBlockStart + blockSize) < sourceBlockStart
+                            || potentialMatchBlockStart > rightBoundary;
+                         // decrement the potential match block index one block size at a time
+                         potentialMatchBlockStart = toroidalIndex(potentialMatchBlockStart - blockSize)) {
+                        // check for match
+                        if (blocksMatch(sourceBlockStart, potentialMatchBlockStart, blockSize)) {
+                            // mark the matching blocks as found
+                            patternFound[sourceBlockStart] = true;
+                            patternFound[potentialMatchBlockStart] = true;
+                            // increment the block size frequency
+                            setBlockSizeFrequency(blockSize, getBlockSizeFrequency(blockSize) + 1);
+                        } else {
+                            // stop looking matches if contiguity is broken
+                            break;
+                        }
                     }
                 }
             }
-        }
-    }
-    
-    /**
-     * Returns the source array with which the InformationSpectrum was created.
-     */
-    public int[] getSourceArray() {
-        return sourceArray;
-    }
-    
-    /**
-     * Returns the maximum size that a repeated block can be for the array with
-     * which the InformationSpectrum was initialized.
-     */
-    public int getMaxBlockSize() {
-        return maxBlockSize;
-    }
-    
-    /**
-     * Returns the minimum size that a repeated block can be for the array with which
-     * the InformationSpectrum was initialized.
-     */
-    public int getMinBlockSize() {
-        return minBlockSize;
-    }
-    
-    /**
-     * Returns the frequency with which blocks of a given size were repeated
-     * within the initializing array (this corresponds to quering the Block
-     * Size / Repetition Count tables in the README.txt at 
-     * https://github.com/kdbanman/InfoSpect).
-     *
-     * Valid block size parameters range from 2 to N-1 (where N is the length
-     * of the initializing array).  Invalid queries return -1.
-     *
-     */
-    public int getBlockSizeFrequency(int blockSize) {
-        if (blockSize >= minBlockSize || blockSize <= maxBlockSize) {
-            return blockSizeFrequencies[blockSize];
-        } else {
-            throw new ArrayIndexOutOfBoundsException("InformationSpectrum Error: Cannot request negative block size frequency.");
         }
     }
     
