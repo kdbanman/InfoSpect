@@ -1,5 +1,7 @@
 package infospect;
 
+import java.io.IOException;
+
 /**
  *
  * @author kdbanman
@@ -15,7 +17,6 @@ public class InfoSpectTests {
         for (int i : test) {
             testStr += Integer.toString(i) + ",";
         }
-        
         testStr = testStr.substring(0, testStr.length() - 1) + "}";
         System.out.println("Analyzing " + testStr + "...");
         
@@ -48,8 +49,8 @@ public class InfoSpectTests {
         }
         long finishTime = System.currentTimeMillis();
         
-        long arraysPerSec = numberOfArrays * 1000 / (finishTime - startTime);
-        System.out.println("  " + (int) arraysPerSec + " arrays processed per second\n");
+        double arraysPerSec = (double) (numberOfArrays * 1000) / (double) (finishTime - startTime);
+        System.out.println("  " + arraysPerSec + " arrays processed per second\n");
         
         System.out.println("Processing arrays (contiguous analysis)...");
         startTime = System.currentTimeMillis();
@@ -58,25 +59,22 @@ public class InfoSpectTests {
         }
         finishTime = System.currentTimeMillis();
         
-        arraysPerSec = numberOfArrays * 1000 / (finishTime - startTime);
-        System.out.println("  " + (int) arraysPerSec + " arrays processed per second\n");
+        arraysPerSec = (double) (numberOfArrays * 1000) / (double) (finishTime - startTime);
+        System.out.println("  " + arraysPerSec + " arrays processed per second\n");
     }
     
-    private static void runTests(boolean performanceTests) {
+    private static void runTests() {
         
-        // examples from documentation
-        
+        // print examples from documentation
         // non-contiguous
         testArray(new int[]{2,1,0,2,2,2,1,0,2});
-        
         // contiguous documentation examples
         testArray(new int[]{0,1,2,0,1,1});
         testArray(new int[]{0,1,0,1,1,1,0,1});
-        
         //both
         testArray(new int[]{1,1,1,1,1});
         
-        // examples not from documentation
+        // print examples not from documentation
         testArray(new int[]{1,1,0,1,1,0,1,1,0,2});
         testArray(new int[]{0,1,1,0,1,1,0,1,1});
         testArray(new int[]{0,1,2,2,1,0,0,1,2,2,1,1});
@@ -84,13 +82,90 @@ public class InfoSpectTests {
         testArray(new int[]{2,1,0,1,2,0});
         testArray(new int[]{9,8,7,8,9,7});
         
-        if (performanceTests) {
-            runsPerSecond(10000, 10);
-            runsPerSecond(10000, 20);
-            runsPerSecond(5000, 50);
-            runsPerSecond(1000, 100);
-            runsPerSecond(200, 150);
+        System.out.println("Running correctness tests...");
+        // assert correctness
+        boolean testFailed = false;
+        InformationSpectrum test = new InformationSpectrum(new int[]{2,1,0,2,2,2,1,0,2}, false);
+        testFailed |= !assertBounds(test, 2, 8);
+        testFailed |= !assertFrequency(test, new int[]{-1,-1,5,4,3,2,1,0,0});
+        
+        test = new InformationSpectrum(new int[]{0,1,2,0,1,1}, true);
+        testFailed |= !assertBounds(test, 1, 3);
+        testFailed |= !assertFrequency(test, new int[]{-1,1,0,0});
+        
+        test = new InformationSpectrum(new int[]{0,1,0,1,1,1,0,1}, true);
+        testFailed |= !assertBounds(test, 1, 4);
+        testFailed |= !assertFrequency(test, new int[]{-1,2,4,0,0});
+        
+        test = new InformationSpectrum(new int[]{1,1,1,1,1}, false);
+        testFailed |= !assertBounds(test, 2, 4);
+        testFailed |= !assertFrequency(test, new int[]{-1,-1,4,4,4});
+        
+        test = new InformationSpectrum(new int[]{1,1,1,1,1}, true);
+        testFailed |= !assertBounds(test, 1, 2);
+        testFailed |= !assertFrequency(test, new int[]{-1,4,3});
+        
+        if (testFailed) {
+            System.out.println("\nTESTS FAILED!");
+            System.out.println("=============");
+        } else {
+            System.out.println("\nAll tests Passed!");
+            System.out.println("=================");
         }
+        
+        System.out.println("\nRun performance tests (y/N)? ");
+        boolean performanceTests = false;
+        try {
+            int inChar = System.in.read();
+            performanceTests = inChar == (int) 'y' || inChar == (int) 'Y';
+        } catch (IOException e) {
+            System.err.println("Error reading input.  Not running performance tests.");
+        }
+        if (performanceTests) {
+            runsPerSecond(1000, 10);
+            runsPerSecond(1000, 20);
+            runsPerSecond(100, 50);
+            runsPerSecond(20, 100);
+            runsPerSecond(5, 130);
+        }
+    }
+    
+    /**
+     * pass test spectrum along with desired min and max block sizes.
+     */
+    private static boolean assertBounds(InformationSpectrum test, int min, int max) {
+        boolean passed = true;
+        if (test.getMinBlockSize() != min) {
+            passed = false;
+            System.err.println("TEST FAILED: minBlocksize() != " + min + " for spectrum:");
+            System.err.println(test);
+        }
+        if (test.getMaxBlockSize() != max) {
+            passed = false;
+            System.err.println("TEST FAILED: maxBlocksize() != " + max + " for spectrum:");
+            System.err.println(test);
+        }
+        return passed;
+    }
+    
+    /**
+     * pass {x,x,freq1,freq2,...,freqN} for non contiguous,
+     * and  {x,freq1,freq2,...,freqN} for contiguous.
+     */
+    private static boolean assertFrequency(InformationSpectrum test, int[] frequencies) {
+        if (frequencies.length != test.getMaxBlockSize() + 1) {
+            throw new ArrayIndexOutOfBoundsException("Incorrectly sized reference array passed to assertion method");
+        }
+        
+        boolean passed = true;
+        for (int i = test.getMinBlockSize(); i <= test.getMinBlockSize(); i++) {
+            if (test.getFrequency(i) != frequencies[i]) {
+                passed = false;
+                System.err.println("TEST FAILED: getFrequency(" + i + ") != " + frequencies[i] + " in spectrum:");
+                System.err.println(test);
+            }
+        }
+        return passed;
     }
     
     /**
@@ -98,6 +173,6 @@ public class InfoSpectTests {
      * for your machine.
      */
     public static void main(String[] args) {
-        runTests(true);
+        runTests();
     }
 }
