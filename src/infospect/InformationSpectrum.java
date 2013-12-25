@@ -177,6 +177,8 @@ import java.util.Arrays;
  * @author kdbanman
  */
 public class InformationSpectrum {
+    // whether or not the analysis is contiguous
+    private final boolean isContiguous;
     // array with which the spectrum is initialized
     private final int[] sourceArray;
     // maximum possible size of block repeated within source array
@@ -213,6 +215,7 @@ public class InformationSpectrum {
      * compressible blocks only.
      */
     public InformationSpectrum(int[] source, boolean contiguous) {
+        isContiguous = contiguous;
         sourceArray = source;
         blockSizeFrequencies = new int[source.length];
         
@@ -225,6 +228,13 @@ public class InformationSpectrum {
             minBlockSize = 1;
             performContiguousAnalysis();
         }
+    }
+    
+    /**
+     * Returns true if the spectral analysis was contiguous.
+     */
+    public boolean isContiguous() {
+        return isContiguous;
     }
     
     /**
@@ -257,7 +267,18 @@ public class InformationSpectrum {
      *
      * Valid block size parameters range from getMinBlockSize() to getMaxBlockSize().
      * Invalid queries return -1.
+     */
+    public int getFrequency(int blockSize) {
+        return getBlockSizeFrequency(blockSize);
+    }
+    
+    /**
+     * Returns the frequency with which blocks of a given size were repeated
+     * within the initializing array (this corresponds to querying the Block
+     * Size / Repetition Count tables in the README.txt).
      *
+     * Valid block size parameters range from getMinBlockSize() to getMaxBlockSize().
+     * Invalid queries return -1.
      */
     public int getBlockSizeFrequency(int blockSize) {
         if (blockSize >= minBlockSize || blockSize <= maxBlockSize) {
