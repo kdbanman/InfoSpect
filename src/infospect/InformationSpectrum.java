@@ -451,8 +451,8 @@ public class InformationSpectrum {
         for (int i : sourceArray) {
             stringRep += Integer.toString(i) + ",";
         }
-        stringRep = stringRep.substring(0, stringRep.length() - 1) + "}\n";
-        
+        stringRep += stringRep.substring(0, stringRep.length() - 1) + "}\n";
+        stringRep += isContiguous() ? "Contiguous Analysis:\n" : "Non-Contiguous Analysis:\n";
         stringRep += "Block Size - Repetition Count\n";
         for (int i = minBlockSize; i <= maxBlockSize; i++) {
             String blockSize = Integer.toString(i);
