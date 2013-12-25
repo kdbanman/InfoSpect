@@ -447,7 +447,13 @@ public class InformationSpectrum {
      */
     @Override
     public String toString() {
-        String stringRep = "Block Size - Repetition Count\n";
+        String stringRep = "Source Array: {";
+        for (int i : sourceArray) {
+            stringRep += Integer.toString(i) + ",";
+        }
+        stringRep = stringRep.substring(0, stringRep.length() - 1) + "}\n";
+        
+        stringRep += "Block Size - Repetition Count\n";
         for (int i = minBlockSize; i <= maxBlockSize; i++) {
             String blockSize = Integer.toString(i);
             String freq = Integer.toString(getBlockSizeFrequency(i));
