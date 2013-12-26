@@ -1,6 +1,7 @@
 package infospect;
 
 import java.io.IOException;
+import java.util.Scanner;
 
 /**
  *
@@ -21,13 +22,11 @@ public class InfoSpectTests {
         System.out.println("Analyzing " + testStr + "...");
         
         InformationSpectrum testSpect = new InformationSpectrum(test);
-        System.out.println("Non-Contiguous Result:");
         System.out.println(testSpect);
         
         testSpect = new InformationSpectrum(test, true);
-        System.out.println("Contiguous Result:");
         System.out.println(testSpect);
-        System.out.println("---------------------------------");
+        System.out.println("---------------------------------\n");
     }
     
     private static void runsPerSecond(int numberOfArrays, int arrayLength) {
@@ -50,7 +49,7 @@ public class InfoSpectTests {
         long finishTime = System.currentTimeMillis();
         
         double arraysPerSec = (double) (numberOfArrays * 1000) / (double) (finishTime - startTime);
-        System.out.println("  " + arraysPerSec + " arrays processed per second\n");
+        System.out.println("  " + arraysPerSec + " arrays processed per second");
         
         System.out.println("Processing arrays (contiguous analysis)...");
         startTime = System.currentTimeMillis();
@@ -61,6 +60,39 @@ public class InfoSpectTests {
         
         arraysPerSec = (double) (numberOfArrays * 1000) / (double) (finishTime - startTime);
         System.out.println("  " + arraysPerSec + " arrays processed per second\n");
+    }
+    
+    private static void threadTest(int elementsPerThread, int numberOfArrays, int arrayLength) {
+        System.out.println("Creating " + numberOfArrays + " arrays of length " + arrayLength + "...");
+        // make a number of random test arrays of specified length
+        int[][] tests = new int[numberOfArrays][arrayLength];
+        for (int i = 0; i < numberOfArrays; i++) {
+            tests[i] = new int[arrayLength];
+            for (int j = 0; j < arrayLength; j++) {
+                tests[i][j] = (int)(Math.random() * 3);
+            }
+        }
+        
+        System.out.println("Processing with " + elementsPerThread + " elements per thread thread...");
+        System.out.println("  Processing arrays (non-contiguous analysis)...");
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < numberOfArrays; i++) {
+            InformationSpectrum test = new InformationSpectrum(tests[i], false, elementsPerThread);
+        }
+        long finishTime = System.currentTimeMillis();
+        
+        double arraysPerSec = (double) (numberOfArrays * 1000) / (double) (finishTime - startTime);
+        System.out.println("    " + arraysPerSec + " arrays processed per second");
+        
+        System.out.println("  Processing arrays (contiguous analysis)...");
+        startTime = System.currentTimeMillis();
+        for (int i = 0; i < numberOfArrays; i++) {
+            InformationSpectrum test = new InformationSpectrum(tests[i], true, elementsPerThread);
+        }
+        finishTime = System.currentTimeMillis();
+        
+        arraysPerSec = (double) (numberOfArrays * 1000) / (double) (finishTime - startTime);
+        System.out.println("    " + arraysPerSec + " arrays processed per second\n");
     }
     
     private static void runTests() {
@@ -113,20 +145,27 @@ public class InfoSpectTests {
             System.out.println("=================");
         }
         
+        Scanner in = new Scanner(System.in);
+        
         System.out.println("\nRun performance tests (y/N)? ");
         boolean performanceTests = false;
-        try {
-            int inChar = System.in.read();
-            performanceTests = inChar == (int) 'y' || inChar == (int) 'Y';
-        } catch (IOException e) {
-            System.err.println("Error reading input.  Not running performance tests.");
-        }
+        String choice = in.nextLine();
+        performanceTests = choice.equalsIgnoreCase("y");
         if (performanceTests) {
             runsPerSecond(1000, 10);
             runsPerSecond(1000, 20);
             runsPerSecond(100, 50);
             runsPerSecond(20, 100);
             runsPerSecond(5, 130);
+        }
+        
+        System.out.println("\nRun multithreading tests (y/N)? ");
+        boolean multithreadTests = false;
+        choice = in.nextLine();
+        multithreadTests = choice.equalsIgnoreCase("y");
+        if (multithreadTests) {
+            for (int i = 3; i <= 30; i += 3)
+            threadTest(i, 40, 100);
         }
     }
     
