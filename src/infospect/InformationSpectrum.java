@@ -1,7 +1,6 @@
 package infospect;
 
 import java.util.Arrays;
-import java.util.concurrent.Callable;
 
 /* 
  * The following is repeated in the README.txt at
@@ -201,7 +200,7 @@ public class InformationSpectrum {
      * analysis.
      */
     public InformationSpectrum(int[] source) {
-        this(source, false, 15);
+        this(source, false);
     }
     
     /**
@@ -216,24 +215,6 @@ public class InformationSpectrum {
      * compressible blocks only.
      */
     public InformationSpectrum(int[] source, boolean contiguous) {
-        this(source, contiguous, 15);
-    }
-    
-    /**
-     * /**
-     * Generate *toroidal* spectral analysis of information content for
-     * for the passed array (See README.txt at for explanation and examples).
-     *
-     * (Non-toroidal isn't useful to me right now, so it's not done.)
-     * 
-     * @param source Array of integers of  length > 2 for toroidal spectral 
-     * analysis.
-     * @param contiguous Whether or not to perform the analysis for contiguous
-     * compressible blocks only.
-     * @param threadIntervalSize Number of block sizes to be processed per thread.  (>= 3)
-     */
-    public InformationSpectrum(int[] source, boolean contiguous, int threadIntervalSize) {
-        
         isContiguous = contiguous;
         sourceArray = source;
         blockSizeFrequencies = new int[source.length];
@@ -241,11 +222,12 @@ public class InformationSpectrum {
         if (!contiguous) {
             maxBlockSize = source.length - 1;
             minBlockSize = 2;
+            performAnalysis();
         } else {
             maxBlockSize = source.length / 2;
             minBlockSize = 1;
+            performContiguousAnalysis();
         }
-        performAnalysis(threadIntervalSize);
     }
     
     /**
@@ -281,7 +263,7 @@ public class InformationSpectrum {
     /**
      * Returns the frequency with which blocks of a given size were repeated
      * within the initializing array (this corresponds to querying the Block
-     * Size - Repetition Count tables in the README.txt).
+     * Size / Repetition Count tables in the README.txt).
      *
      * Valid block size parameters range from getMinBlockSize() to getMaxBlockSize().
      * Invalid queries return -1.
@@ -302,34 +284,106 @@ public class InformationSpectrum {
         if (blockSize >= minBlockSize || blockSize <= maxBlockSize) {
             return blockSizeFrequencies[blockSize];
         } else {
-            throw new ArrayIndexOutOfBoundsException("InformationSpectrum Error: Cannot request block size " + blockSize + " frequency.");
+            throw new ArrayIndexOutOfBoundsException("InformationSpectrum Error: Cannot request negative block size frequency.");
         }
     }
     
-    private void performAnalysis(int threadIntervalSize) {
-        // create thread pool
-        int numThreads = (maxBlockSize - minBlockSize + 1) / threadIntervalSize;
-        if ((maxBlockSize - minBlockSize + 1) % threadIntervalSize != 0) numThreads++;
-        Thread[] threads = new Thread[numThreads];
-        
-        // for each block size interval, spawn a thread for analysis
-        for (int blockSize = minBlockSize; blockSize <= maxBlockSize; blockSize += threadIntervalSize) {
-            Runnable repetitionFinder = isContiguous ? 
-                        new ContiguousRepetitionFinder(blockSize, Math.min(blockSize + threadIntervalSize - 1, maxBlockSize)) :
-                        new RepetitionFinder(blockSize, Math.min(blockSize + threadIntervalSize - 1, maxBlockSize));
-            Thread t = new Thread(repetitionFinder);
-            
-            threads[blockSize / threadIntervalSize] = t;
-            t.start();
-        }
-        
-        try {
-            for (Thread t : threads) {
-                t.join();
+    private void performAnalysis() {
+        // for each block size
+        for (int blockSize = minBlockSize; blockSize <= maxBlockSize; blockSize++) {
+            // if a block is repeated at an index, then a pattern has been found
+            // and the repeated block shouldn't be used to find other repetition
+            boolean[] patternFound = new boolean[sourceArray.length];
+            // look for each block of length blockSize in the rest of the array
+            for (int matchSourceBlockStart = 0; matchSourceBlockStart < sourceArray.length; matchSourceBlockStart++) {
+                // ignore the patterns of this blockSize that are already found
+                if (patternFound[matchSourceBlockStart]) continue;
+                // look for the current block in the rest of the array
+                for (int potentialMatchBlockStart = 0; potentialMatchBlockStart < sourceArray.length; potentialMatchBlockStart++) {
+                    // don't look for yourself within yourself. that's silly.
+                    if (potentialMatchBlockStart == matchSourceBlockStart) continue;
+                    // if the first entries of the match source block and the block currently under
+                    // inspection match, then continue inspection
+                    boolean potentialMatch = sourceArray[matchSourceBlockStart] == sourceArray[potentialMatchBlockStart];
+                    if (potentialMatch) {
+                        for (int i = 1; i < blockSize; i++) {
+                            potentialMatch = toroidalAccess(sourceArray, matchSourceBlockStart + i) == toroidalAccess(sourceArray, potentialMatchBlockStart + i);
+                            if (!potentialMatch) break;
+                        }
+                        if (potentialMatch) {
+                            patternFound[potentialMatchBlockStart] = true;
+                            blockSizeFrequencies[blockSize] = blockSizeFrequencies[blockSize] + 1;
+                        }
+                    }
+                }
             }
-        } catch (InterruptedException e) {
-            System.err.println("Analysis threads failed to join().");
-            e.printStackTrace(System.err);
+        }
+    }
+    
+    private void performContiguousAnalysis() {
+        // for each block size
+        for (int blockSize = minBlockSize; blockSize <= getMaxBlockSize(); blockSize++) {
+            // remember matched blocks for each size (including repetitions) by start index
+            // so that they are not matched twice
+            boolean[] patternFound = new boolean[sourceArray.length];
+            // look for each block of length blockSize in the rest of the array
+            for (int sourceBlockStart = 0; sourceBlockStart < getSourceArray().length; sourceBlockStart++) {
+                // ignore blocks already matched
+                if (patternFound[sourceBlockStart]) continue;
+                // remember the right boundary of the contiguous match is needed so that it can be used when we look for left
+                // for matches (we need to avoid overlap and it's a toroidal array)
+                int rightBoundary = toroidalIndex(sourceBlockStart + blockSize - 1);
+                // look for the current block in the next contiguous blocks of the same size.
+                     // look for first match to the right of the current block
+                for (int potentialMatchBlockStart = toroidalIndex(sourceBlockStart + blockSize);
+                     // continue looking as long as the potential match block does not start or end inside the current block
+                     toroidalIndex(potentialMatchBlockStart + blockSize) < sourceBlockStart
+                       || potentialMatchBlockStart > toroidalIndex(sourceBlockStart + blockSize - 1);
+                     // increment the potential match block index one block size at a time
+                     potentialMatchBlockStart = toroidalIndex(potentialMatchBlockStart + blockSize)) {
+                    // check for match
+                    if (blocksMatch(sourceBlockStart, potentialMatchBlockStart, blockSize)) {
+                        // mark the matching blocks as found
+                        patternFound[sourceBlockStart] = true;
+                        patternFound[potentialMatchBlockStart] = true;
+                        // increment the block size frequency
+                        setBlockSizeFrequency(blockSize, getBlockSizeFrequency(blockSize) + 1);
+                        // set the right boundary
+                        rightBoundary = toroidalIndex(potentialMatchBlockStart + blockSize - 1);
+                    } else {
+                        // stop looking matches if contiguity is broken
+                        break;
+                    }
+                }
+                
+                int elementsUnchecked = rightBoundary > sourceBlockStart ?
+                                           sourceArray.length - (rightBoundary - sourceBlockStart + 1) :
+                                           sourceBlockStart - rightBoundary - 1;
+                // look left of the source block for matches is long as there is a block
+                // left to check between the source block start and the right boundary
+                if (elementsUnchecked > blockSize) {
+                    // look for the current block in the previous (to the left) contiguous blocks of the same size
+                         // look for first match to the left of the current block
+                    for (int potentialMatchBlockStart = toroidalIndex(sourceBlockStart - blockSize);
+                         // continue looking as long as the potential match block does not start or end inside or on the right boundary
+                         toroidalIndex(potentialMatchBlockStart + blockSize) < sourceBlockStart
+                            || potentialMatchBlockStart > rightBoundary;
+                         // decrement the potential match block index one block size at a time
+                         potentialMatchBlockStart = toroidalIndex(potentialMatchBlockStart - blockSize)) {
+                        // check for match
+                        if (blocksMatch(sourceBlockStart, potentialMatchBlockStart, blockSize)) {
+                            // mark the matching blocks as found
+                            patternFound[sourceBlockStart] = true;
+                            patternFound[potentialMatchBlockStart] = true;
+                            // increment the block size frequency
+                            setBlockSizeFrequency(blockSize, getBlockSizeFrequency(blockSize) + 1);
+                        } else {
+                            // stop looking matches if contiguity is broken
+                            break;
+                        }
+                    }
+                }
+            }
         }
     }
     
@@ -340,7 +394,7 @@ public class InformationSpectrum {
         if (blockSize >= minBlockSize || blockSize <= maxBlockSize) {
         blockSizeFrequencies[blockSize] = frequency;
         } else {
-            throw new ArrayIndexOutOfBoundsException("InformationSpectrum Error: Cannot request block size " + blockSize + " frequency.");
+            throw new ArrayIndexOutOfBoundsException("InformationSpectrum Error: Cannot request negative block size frequency.");
         }
     }
     
@@ -397,7 +451,7 @@ public class InformationSpectrum {
         for (int i : sourceArray) {
             stringRep += Integer.toString(i) + ",";
         }
-        stringRep = stringRep.substring(0, stringRep.length() - 1) + "}\n";
+        stringRep += stringRep.substring(0, stringRep.length() - 1) + "}\n";
         stringRep += isContiguous() ? "Contiguous Analysis:\n" : "Non-Contiguous Analysis:\n";
         stringRep += "Block Size - Repetition Count\n";
         for (int i = minBlockSize; i <= maxBlockSize; i++) {
@@ -405,7 +459,6 @@ public class InformationSpectrum {
             String freq = Integer.toString(getBlockSizeFrequency(i));
             stringRep += blockSize + "           - ".substring(blockSize.length()) + freq + "\n";
         }
-        stringRep = stringRep.substring(0, stringRep.length() - 1);
         return stringRep;
         
     }
@@ -423,128 +476,5 @@ public class InformationSpectrum {
     @Override
     public int hashCode() {
         return getSourceArray().hashCode();
-    }
-    
-    private class RepetitionFinder implements Runnable {
-        private final int blockSizeStart;
-        private final int blockSizeFinish;
-        
-        public RepetitionFinder(int blockSizeStart, int blockSizeFinish) {
-            this.blockSizeStart = blockSizeStart;
-            this.blockSizeFinish = blockSizeFinish;
-        }
-        
-        @Override
-        public void run() {
-            for (int blockSize = blockSizeStart; blockSize <= blockSizeFinish; blockSize++) {
-                int repetitions = 0;
-                // if a block is repeated at an index, then a pattern has been found
-                // and the repeated block shouldn't be used to find other repetition
-                boolean[] patternFound = new boolean[sourceArray.length];
-                // look for each block of length blockSize in the rest of the array
-                for (int matchSourceBlockStart = 0; matchSourceBlockStart < sourceArray.length; matchSourceBlockStart++) {
-                    // ignore the patterns of this blockSize that are already found
-                    if (patternFound[matchSourceBlockStart]) continue;
-                    // look for the current block in the rest of the array
-                    for (int potentialMatchBlockStart = 0; potentialMatchBlockStart < sourceArray.length; potentialMatchBlockStart++) {
-                        // don't look for yourself within yourself. that's silly.
-                        if (potentialMatchBlockStart == matchSourceBlockStart) continue;
-                        // if the first entries of the match source block and the block currently under
-                        // inspection match, then continue inspection
-                        boolean potentialMatch = sourceArray[matchSourceBlockStart] == sourceArray[potentialMatchBlockStart];
-                        if (potentialMatch) {
-                            for (int i = 1; i < blockSize; i++) {
-                                potentialMatch = toroidalAccess(sourceArray, matchSourceBlockStart + i) == toroidalAccess(sourceArray, potentialMatchBlockStart + i);
-                                if (!potentialMatch) break;
-                            }
-                            if (potentialMatch) {
-                                patternFound[potentialMatchBlockStart] = true;
-                                repetitions++;
-                            }
-                        }
-                    }
-                }
-                setBlockSizeFrequency(blockSize, repetitions);
-            }
-        }
-    }
-    
-    private class ContiguousRepetitionFinder extends Thread {
-        private final int blockSizeStart;
-        private final int blockSizeFinish;
-        
-        public ContiguousRepetitionFinder(int blockSizeStart, int blockSizeFinish) {
-            this.blockSizeStart = blockSizeStart;
-            this.blockSizeFinish = blockSizeFinish;
-        }
-        
-        @Override
-        public void run() {
-            for (int blockSize = blockSizeStart; blockSize <= blockSizeFinish; blockSize++) {
-                int repetitions = 0;
-                // remember matched blocks for each size (including repetitions) by start index
-                // so that they are not matched twice
-                boolean[] patternFound = new boolean[sourceArray.length];
-                // look for each block of length blockSize in the rest of the array
-                for (int sourceBlockStart = 0; sourceBlockStart < getSourceArray().length; sourceBlockStart++) {
-                    // ignore blocks already matched
-                    if (patternFound[sourceBlockStart]) continue;
-                    // remember the right boundary of the contiguous match is needed so that it can be used when we look for left
-                    // for matches (we need to avoid overlap and it's a toroidal array)
-                    int rightBoundary = toroidalIndex(sourceBlockStart + blockSize - 1);
-                    // look for the current block in the next contiguous blocks of the same size.
-                         // look for first match to the right of the current block
-                    for (int potentialMatchBlockStart = toroidalIndex(sourceBlockStart + blockSize);
-                         // continue looking as long as the potential match block does not start or end inside the current block
-                         toroidalIndex(potentialMatchBlockStart + blockSize) < sourceBlockStart
-                           || potentialMatchBlockStart > toroidalIndex(sourceBlockStart + blockSize - 1);
-                         // increment the potential match block index one block size at a time
-                         potentialMatchBlockStart = toroidalIndex(potentialMatchBlockStart + blockSize)) {
-                        // check for match
-                        if (blocksMatch(sourceBlockStart, potentialMatchBlockStart, blockSize)) {
-                            // mark the matching blocks as found
-                            patternFound[sourceBlockStart] = true;
-                            patternFound[potentialMatchBlockStart] = true;
-                            // increment the block size frequency
-                            repetitions++;
-                            // set the right boundary
-                            rightBoundary = toroidalIndex(potentialMatchBlockStart + blockSize - 1);
-                        } else {
-                            // stop looking matches if contiguity is broken
-                            break;
-                        }
-                    }
-
-                    int elementsUnchecked = rightBoundary > sourceBlockStart ?
-                                               sourceArray.length - (rightBoundary - sourceBlockStart + 1) :
-                                               sourceBlockStart - rightBoundary - 1;
-                    // look left of the source block for matches is long as there is a block
-                    // left to check between the source block start and the right boundary
-                    if (elementsUnchecked > blockSize) {
-                        // look for the current block in the previous (to the left) contiguous blocks of the same size
-                             // look for first match to the left of the current block
-                        for (int potentialMatchBlockStart = toroidalIndex(sourceBlockStart - blockSize);
-                             // continue looking as long as the potential match block does not start or end inside or on the right boundary
-                             toroidalIndex(potentialMatchBlockStart + blockSize) < sourceBlockStart
-                                || potentialMatchBlockStart > rightBoundary;
-                             // decrement the potential match block index one block size at a time
-                             potentialMatchBlockStart = toroidalIndex(potentialMatchBlockStart - blockSize)) {
-                            // check for match
-                            if (blocksMatch(sourceBlockStart, potentialMatchBlockStart, blockSize)) {
-                                // mark the matching blocks as found
-                                patternFound[sourceBlockStart] = true;
-                                patternFound[potentialMatchBlockStart] = true;
-                                // increment the block size frequency
-                                repetitions++;
-                            } else {
-                                // stop looking matches if contiguity is broken
-                                break;
-                            }
-                        }
-                    }
-                }
-                setBlockSizeFrequency(blockSize, repetitions);
-            }
-        }
     }
 }
