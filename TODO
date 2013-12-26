@@ -1,4 +1,4 @@
-- multithread for each block size
+- block against invalid parameters
 
 - parametrize class from integer arrays to a more generic collection
 	- i want native, fast analysis of arrays to persist.  maybe overload the constructor with the List.toArray()?

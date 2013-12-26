@@ -1,6 +1,15 @@
 Copyright 2013 Kirby Banman
-
 https://github.com/kdbanman/InfoSpect
+
+--------------------------------------------------------------------------------
+
+Javadoc and .jar file are in the dist/ directory.
+
+Run correctness and optional performance tests with `java -jar InfoSpect.jar`
+
+Conceptual description is below.
+
+--------------------------------------------------------------------------------
 
 All examples use integers 0, 1, and 2, but this is just for readability.
 Any integers may be used by the class.
