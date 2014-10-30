@@ -1,57 +1,162 @@
-Copyright 2013 Kirby Banman
+Copyright 2014 Kirby Banman
 
 https://github.com/kdbanman/InfoSpect
 
-All examples use integers 0, 1, and 2, but this is just for readability.
-Any integers may be used by the class.
+InfoSpect is short for Information Spectrum.  The purpose of the software is
+to find repeated patterns in toroidal (circular) arrays of integers.
 
-Data structure representing the information content (patterns and
-repetition) of an array.
+A toroidal array is one that can be rotated.  In essence, the InfoSpect library
+treats looks at these two arrays in exactly the same way:
 
-Any length N array can have repeated blocks (subarrays) ranging in length
-from length 2 to length N-1.  (Length 1 blocks are ignored for reasons that
-are explained later.)  For instance, the length 9 array
-    {1,1,0,2,2,1,1,0,2}
-has three length 2 blocks that occur twice, {1.1}, {1,0}, and {0,2}, so 3
-total length 2 block repetitions. It also has two length 3 blocks that occur
-twice, {1,1,0} and {1,0,2}, and it has one length 4 block that repeats twice,
-{1,1,0,2}.  The information spectrum is the following table:
+    {2,3,4,5,6,7,8}  and  {6,7,8,2,3,4,5}
+
+
+Example 1
+=========
+
+Consider the length 9 array
+
+    {1,1,0,2,2,2,1,0,2}
+
+There are 5 unique blocks of length 2, and they occur in the array as shown:
+
+    {l,1}:    {1,1,0,2,2,2,1,0,2}
+               ^ ^
+              --> not repeated
+
+    {1,0}:    {1,1,0,2,2,2,1,0,2}
+                 ^ ^       ^ ^
+              --> repeated once
+
+    {0,2}:    {1,1,0,2,2,2,1,0,2}
+                   ^ ^       ^ ^
+              --> repeated once
+
+    {2,2}:    {1,1,0,2,2,2,1,0,2}
+                     ^ ^
+                       ^ ^
+              --> repeated once
+
+    {2,1}:    {1,1,0,2,2,2,1,0,2}
+               ^         ^ ^   ^
+              --> repeated once
+
+    So there are 4 repetitions total for block size of 2.
+
+There are 8 unique length 3 blocks:
+
+    {1,1,0}:    {1,1,0,2,2,2,1,0,2}
+                 ^ ^ ^
+                --> not repeated
+
+    {1,0,2}:    {1,1,0,2,2,2,1,0,2}
+                   ^ ^ ^     ^ ^ ^
+                --> repeated once
+
+    {0,2,2}:    {1,1,0,2,2,2,1,0,2}
+                     ^ ^ ^
+                --> not repeated
+
+    {2,2,2}:    {1,1,0,2,2,2,1,0,2}
+                       ^ ^ ^
+                --> not repeated
+
+    {2,2,1}:    {1,1,0,2,2,2,1,0,2}
+                         ^ ^ ^
+                --> not repeated
+
+    {2,1,0}:    {1,1,0,2,2,2,1,0,2}
+                           ^ ^ ^
+                --> not repeated
+
+    {0,2,1}:    {1,1,0,2,2,2,1,0,2}
+                 ^             ^ ^
+                --> not repeated
+
+    {2,1,1}:    {1,1,0,2,2,2,1,0,2}
+                 ^ ^             ^
+                --> not repeated
+    
+    So there is 1 repetition total for block size of 3.
+
+There are no more repetitions for block sizes 4+, so the "information
+spectrum" is summarized in this frequency table:
+
     ---------------------------------
-    | Block Size | Repetition Count |
+    | Block Size | Repetition Freq. |
     ---------------------------------
-    |      2     |         3        |
-    |      3     |         2        |
-    |      4     |         1        |
+    |      2     |         4        |
+    |      3     |         1        |
+    |      4     |         0        |
+    |      5     |         0        |
+    |      6     |         0        |
+    |      7     |         0        |
+    |      8     |         0        |
     ---------------------------------
 
-If the an array is treated toroidally, where the first and last members of
-the array are neighbors of each other, then the spectrum may change. First,
-repeated blocks can now be up to length N-1.  Length N blocks are ignored
-because a length N toroidal array is defined as a repetition of length N. 
-Consider the length 9 toroidal array
+To get this result in Java with the InformationSpectrum class:
+
+```
+    int[] arr = new int[] {1,1,0,2,2,2,1,0,2};
+    InformationSpectrum spect = new InformationSpectrum(arr);
+
+    int a = spect.getFrequency(2);  // a == 4
+    int b = spect.getFrequency(3);  // b == 1
+    int c = spect.getFrequency(7);  // c == 0
+
+    int d = spect.getFrequency(9);  // ArrayIndexOutOfBoundsException
+    int d = spect.getFrequency(0);  // ArrayIndexOutOfBoundsException
+    int d = spect.getFrequency(1);  // ArrayIndexOutOfBoundsException
+```
+
+Notice that only the block sizes from the table are valid.  Blocks of size 1
+are not considered patterns.  Blocks of size 9 (equal to array size) are not
+repeatable.
+
+In general, an array of size N may have patterns sized from 2 to N - 1.
+
+This can be obtained in Java as well:
+
+```
+    int smallest = spect.getMinBlockSize();  // smallest == 2
+    int largest  = spect.getMaxBlockSize();  // largest == 8
+```
+
+
+Example 2
+=========
+
+Consider another array:
+
     {2,1,0,2,2,2,1,0,2}
-Repetition analysis (assuming I have made no errors) yields:
+
+The repeated blocks are the following:
+
     ---------------------------
-    | Repeating block | Count |
+    |     Block   |  Repeated |
     ---------------------------
-    |     2,1         |   2   |
-    |     1,0         |   2   |
-    |     0,2         |   2   |
-    |     2,2         |   3   |
-    |    2,1,0        |   2   |
-    |    1,0,2        |   2   |
-    |    0,2,2        |   2   |
-    |    2,2,1        |   2   |
-    |   2,1,0,2       |   2   |
-    |   1,0,2,2       |   2   |
-    |   2,2,1,0       |   2   |
-    |  2,1,0,2,2      |   2   |
-    |  2,2,1,0,2      |   2   |
-    | 2,2,1,0,2,2     |   2   |
-    ---------------------------
-This reduces to an information spectrum of:
+    |     2,1     |     1     |
+    |     1,0     |     1     |
+    |     0,2     |     1     |
+    |     2,2     |     2     |   {2,2}:    {2,1,0,2,2,2,1,0,2}
+    |    2,1,0    |     1     |              ^               ^
+    |    1,0,2    |     1     |                    ^ ^
+    |    0,2,2    |     1     |                      ^ ^
+    |    2,2,1    |     1     |              --> repeated twice
+    |   2,1,0,2   |     1     |
+    |   1,0,2,2   |     1     |
+    |   2,2,1,0   |     1     |
+    |  2,1,0,2,2  |     1     |
+    |  2,2,1,0,2  |     1     |
+    | 2,2,1,0,2,2 |     1     |  {2,2,1,0,2,2}:    {2,1,0,2,2,2,1,0,2}
+    ---------------------------                     ^ ^ ^ ^ ^       ^
+                                                    ^       ^ ^ ^ ^ ^
+                                                    --> repeated once
+
+Summing the repetition frequencies for each block size yields the spectrum:
+
     ---------------------------------
-    | Block Size | Repetition Count |
+    | Block Size | Repetition Freq. |
     ---------------------------------
     |      2     |         5        |
     |      3     |         4        |
@@ -62,39 +167,48 @@ This reduces to an information spectrum of:
     |      8     |         0        |
     ---------------------------------
 
+
+================================================================================
+================================================================================
+
+Contiguous Mode
+===============
+
+
 For contiguous information analysis, blocks are only considered repetitive if
-they are repeated in directly neighboring blocks.  For instance, in the array
+they are repeated in directly neighboring blocks.
+
+
+Example 1
+=========
+
+Consider the array:
+
     {0,1,2,0,1,1}
-the block {0,1} is not considered repetitive because there is a 2 separating
-both instances.  The contiguous repetition analysis for the array is
-    ---------------------------
-    | Repeating block | Count |
-    ---------------------------
-    |      0          |   0   |
-    |      1          |   0   |
-    |      2          |   0   |
-    |      0          |   0   |
-    |      1          |   1   |
-    |     0,1         |   0   |
-    |     1,2         |   0   |
-    |     2,0         |   0   |
-    |     0,1         |   0   |
-    |     1,1         |   0   |
-    |     1,0         |   0   |
-    |    0,1,2        |   0   |
-    |    1,2,0        |   0   |
-    |    2,0,1        |   0   |
-    |    0,1,1        |   0   |
-    |    1,1,0        |   0   |
-    |    1,0,1        |   0   |
-    ---------------------------
-Note that now blocks of size 1 are now meaningful, since they don't just
-represent the counts of each number.  Also note that the maximum block size
-is now the floor of half the array's length, because a block that size
-repeated only once is already the length of the array (or the length of the
-array less one if the array is of odd number length).  Finally, note that
-blocks may repeat, since a there may be contiguous patterns of the same block
-in multiple locations.  The spectrum for the above repetition analysis is:
+
+the block {0,1} is not considered repetitive because the instances are not 
+touching (contiguous).  See the following:
+
+    -------------------------
+    |  Block        | Freq. |
+    -------------------------  {1}:    {0,1,2,0,1,1}
+    |    0          |   0   |             ^     ^ ^
+    |    1          |   1   |           --> repeated contiguously once
+    |    2          |   0   |
+    |   0,1         |   0   |  {0,1}:    {0,1,2,0,1,1}
+    |   1,2         |   0   |             ^ ^   ^ ^
+    |   2,0         |   0   |             --> not repeated contiguously
+    |   1,1         |   0   |
+    |  0,1,2        |   0   |
+    |  1,2,0        |   0   |
+    |  2,0,1        |   0   |
+    |  0,1,1        |   0   |
+    |  1,1,0        |   0   |
+    |  1,0,1        |   0   |
+    -------------------------
+
+Which reduces to the spectrum:
+
     ---------------------------------
     | Block Size | Repetition Count |
     ---------------------------------
@@ -102,6 +216,45 @@ in multiple locations.  The spectrum for the above repetition analysis is:
     |      2     |         0        |
     |      3     |         0        |
     ---------------------------------
+
+Note that now blocks of size 1 are now meaningful, since they don't just
+represent the frequency of each number.
+
+Also note that the maximum block size is now the floor of half the array's
+length, because a block that large repeated only once is already the length
+of the array.  The example below demonstrates this.
+
+Example 2
+=========
+
+    {1,1,0,1,1,0}
+
+    ----------------------
+    |  Block     | Freq. |
+    ----------------------  {1}:    {1,1,0,1,1,0}
+    |    1       |   2   |           ^ ^   ^ ^
+    |    0       |   0   |           --> repeated contiguously twice
+    |   1,1      |   0   |
+    |   1,0      |   0   |  {0,1}:    {0,1,2,0,1,1}
+    |   0,1      |   0   |             ^ ^   ^ ^
+    |  1,1,0     |   1   |             --> not repeated contiguously
+    |  1,0,1     |   1   |
+    |  0,1,1     |   1   |
+    ----------------------
+
+###############################
+#
+#  TODO CONTIGUOUS MODE IS STUPID RIGHT NOW
+#  frequency for 3 is overcounted in above example for obvious reasons
+#
+###########################3###
+
+Finally, note that the same block may occur in more than one contiguous block.
+Consider the array:
+
+    {2,1,1,2,1,1,1}
+
+
 
 Alternatively, the array
     {0,1,0,1,1,1,0,1}
