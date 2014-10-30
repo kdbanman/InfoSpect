@@ -1,5 +1,0 @@
-- multithread for each block size
-
-- parametrize class from integer arrays to a more generic collection
-	- i want native, fast analysis of arrays to persist.  maybe overload the constructor with the List.toArray()?
-	- i don't need to parametrize the class, just accept a List<? extends Object> as a constructor parameter
