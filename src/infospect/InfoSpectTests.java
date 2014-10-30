@@ -21,13 +21,7 @@ public class InfoSpectTests {
         System.out.println("Analyzing " + testStr + "...");
         
         InformationSpectrum testSpect = new InformationSpectrum(test);
-        System.out.println("Non-Contiguous Result:");
-        System.out.println(testSpect);
-        
-        testSpect = new InformationSpectrum(test, true);
-        System.out.println("Contiguous Result:");
-        System.out.println(testSpect);
-        System.out.println("---------------------------------");
+        System.out.println("Result:");
     }
     
     private static void runsPerSecond(int numberOfArrays, int arrayLength) {
@@ -42,7 +36,7 @@ public class InfoSpectTests {
             }
         }
         
-        System.out.println("Processing arrays (non-contiguous analysis)...");
+        System.out.println("Processing arrays...");
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < numberOfArrays; i++) {
             InformationSpectrum test = new InformationSpectrum(tests[i]);
@@ -51,28 +45,17 @@ public class InfoSpectTests {
         
         double arraysPerSec = (double) (numberOfArrays * 1000) / (double) (finishTime - startTime);
         System.out.println("  " + arraysPerSec + " arrays processed per second\n");
-        
-        System.out.println("Processing arrays (contiguous analysis)...");
-        startTime = System.currentTimeMillis();
-        for (int i = 0; i < numberOfArrays; i++) {
-            InformationSpectrum test = new InformationSpectrum(tests[i], true);
-        }
-        finishTime = System.currentTimeMillis();
-        
-        arraysPerSec = (double) (numberOfArrays * 1000) / (double) (finishTime - startTime);
-        System.out.println("  " + arraysPerSec + " arrays processed per second\n");
     }
     
     private static void runTests() {
         
         // print examples from documentation
         // non-contiguous
+        testArray(new int[]{1,1,0,2,2,2,1,0,2});
         testArray(new int[]{2,1,0,2,2,2,1,0,2});
-        // contiguous documentation examples
-        testArray(new int[]{0,1,2,0,1,1});
-        testArray(new int[]{0,1,0,1,1,1,0,1});
-        //both
         testArray(new int[]{1,1,1,1,1});
+        
+        testArray(new int[]{2,1,0,1,2,0});
         
         // print examples not from documentation
         testArray(new int[]{1,1,0,1,1,0,1,1,0,2});
@@ -83,27 +66,29 @@ public class InfoSpectTests {
         testArray(new int[]{9,8,7,8,9,7});
         
         System.out.println("Running correctness tests...");
+        
         // assert correctness
         boolean testFailed = false;
-        InformationSpectrum test = new InformationSpectrum(new int[]{2,1,0,2,2,2,1,0,2}, false);
+        
+        // README example 2
+        InformationSpectrum test = new InformationSpectrum(new int[]{2,1,0,2,2,2,1,0,2});
         testFailed |= !assertBounds(test, 2, 8);
         testFailed |= !assertFrequency(test, new int[]{-1,-1,5,4,3,2,1,0,0});
         
-        test = new InformationSpectrum(new int[]{0,1,2,0,1,1}, true);
-        testFailed |= !assertBounds(test, 1, 3);
-        testFailed |= !assertFrequency(test, new int[]{-1,1,0,0});
-        
-        test = new InformationSpectrum(new int[]{0,1,0,1,1,1,0,1}, true);
-        testFailed |= !assertBounds(test, 1, 4);
-        testFailed |= !assertFrequency(test, new int[]{-1,2,4,0,0});
-        
-        test = new InformationSpectrum(new int[]{1,1,1,1,1}, false);
+        // README example max repetition
+        test = new InformationSpectrum(new int[]{1,1,1,1,1});
         testFailed |= !assertBounds(test, 2, 4);
         testFailed |= !assertFrequency(test, new int[]{-1,-1,4,4,4});
         
-        test = new InformationSpectrum(new int[]{1,1,1,1,1}, true);
-        testFailed |= !assertBounds(test, 1, 2);
-        testFailed |= !assertFrequency(test, new int[]{-1,4,3});
+        // README example 1
+        test = new InformationSpectrum(new int[]{1,1,0,2,2,2,1,0,2});
+        testFailed |= !assertBounds(test, 2, 8);
+        testFailed |= !assertFrequency(test, new int[]{-1,-1,4,1,0,0,0,0,0});
+        
+        // README example no repetition
+        test = new InformationSpectrum(new int[]{2,1,0,1,2,0});
+        testFailed |= !assertBounds(test, 2, 5);
+        testFailed |= !assertFrequency(test, new int[]{-1,-1,0,0,0,0});
         
         if (testFailed) {
             System.out.println("\nTESTS FAILED!");
@@ -149,8 +134,7 @@ public class InfoSpectTests {
     }
     
     /**
-     * pass {x,x,freq1,freq2,...,freqN} for non contiguous,
-     * and  {x,freq1,freq2,...,freqN} for contiguous.
+     * pass {x,x,freq1,freq2,...,freqN}.
      */
     private static boolean assertFrequency(InformationSpectrum test, int[] frequencies) {
         if (frequencies.length != test.getMaxBlockSize() + 1) {

@@ -168,141 +168,17 @@ Summing the repetition frequencies for each block size yields the spectrum:
     ---------------------------------
 
 
-================================================================================
-================================================================================
-
-Contiguous Mode
-===============
-
-
-For contiguous information analysis, blocks are only considered repetitive if
-they are repeated in directly neighboring blocks.
-
-
-Example 1
-=========
-
-Consider the array:
-
-    {0,1,2,0,1,1}
-
-the block {0,1} is not considered repetitive because the instances are not 
-touching (contiguous).  See the following:
-
-    -------------------------
-    |  Block        | Freq. |
-    -------------------------  {1}:    {0,1,2,0,1,1}
-    |    0          |   0   |             ^     ^ ^
-    |    1          |   1   |           --> repeated contiguously once
-    |    2          |   0   |
-    |   0,1         |   0   |  {0,1}:    {0,1,2,0,1,1}
-    |   1,2         |   0   |             ^ ^   ^ ^
-    |   2,0         |   0   |             --> not repeated contiguously
-    |   1,1         |   0   |
-    |  0,1,2        |   0   |
-    |  1,2,0        |   0   |
-    |  2,0,1        |   0   |
-    |  0,1,1        |   0   |
-    |  1,1,0        |   0   |
-    |  1,0,1        |   0   |
-    -------------------------
-
-Which reduces to the spectrum:
-
-    ---------------------------------
-    | Block Size | Repetition Count |
-    ---------------------------------
-    |      1     |         1        |
-    |      2     |         0        |
-    |      3     |         0        |
-    ---------------------------------
-
-Note that now blocks of size 1 are now meaningful, since they don't just
-represent the frequency of each number.
-
-Also note that the maximum block size is now the floor of half the array's
-length, because a block that large repeated only once is already the length
-of the array.  The example below demonstrates this.
-
-Example 2
-=========
-
-    {1,1,0,1,1,0}
-
-    ----------------------
-    |  Block     | Freq. |
-    ----------------------  {1}:    {1,1,0,1,1,0}
-    |    1       |   2   |           ^ ^   ^ ^
-    |    0       |   0   |           --> repeated contiguously twice
-    |   1,1      |   0   |
-    |   1,0      |   0   |  {0,1}:    {0,1,2,0,1,1}
-    |   0,1      |   0   |             ^ ^   ^ ^
-    |  1,1,0     |   1   |             --> not repeated contiguously
-    |  1,0,1     |   1   |
-    |  0,1,1     |   1   |
-    ----------------------
-
-###############################
-#
-#  TODO CONTIGUOUS MODE IS STUPID RIGHT NOW
-#  frequency for 3 is overcounted in above example for obvious reasons
-#
-###########################3###
-
-Finally, note that the same block may occur in more than one contiguous block.
-Consider the array:
-
-    {2,1,1,2,1,1,1}
-
-
-
-Alternatively, the array
-    {0,1,0,1,1,1,0,1}
-has the repetition analysis:
-    ---------------------------
-    | Repeating block | Count |
-    ---------------------------
-    |      0          |   0   |
-    |      1          |   0   |
-    |      0          |   0   |
-    |      1          |   2   |
-    |      0          |   0   |
-    |      1          |   0   |
-    |     0,1         |   2   |
-    |     1,0         |   0   |
-    |     1,1         |   0   |
-    |     1,0         |   2   |
-    |    0,1,0        |   0   |
-    |    1,0,1        |   0   |
-    |    0,1,1        |   0   |
-    |    1,1,1        |   0   |
-    |    1,1,0        |   0   |
-    |    1,0,1        |   0   |
-    |    0,1,0        |   0   |
-    |    1,0,1        |   0   |
-    |   0,1,0,1       |   0   |
-    |   1,0,1,1       |   0   |
-    |   1,1,1,0       |   0   |
-    |   1,1,0,1       |   0   |
-    |   1,0,1,0       |   0   |
-    |   0,1,0,1       |   0   |
-    |   1,0,1,0       |   0   |
-    ---------------------------
-which reduces to the spectrum:
-    ---------------------------------
-    | Block Size | Repetition Count |
-    ---------------------------------
-    |      1     |         2        |
-    |      2     |         4        |
-    |      3     |         0        |
-    |      4     |         0        |
-    ---------------------------------
+Aside
+=====
 
 It is worth noting that greater quantities in an information spectrum
 correspond to less information in the source array, because more repetition
 means more compressibility.  For instance, see the length 5 toroidal array
+
     {1,1,1,1,1}
-which has the non-contiguous spectrum
+
+which has the spectrum
+
     ---------------------------------
     | Block Size | Repetition Count |
     ---------------------------------
@@ -310,15 +186,11 @@ which has the non-contiguous spectrum
     |      3     |         4        |
     |      4     |         4        |
     ---------------------------------
-and the contiguous spectrum
-    ---------------------------------
-    | Block Size | Repetition Count |
-    ---------------------------------
-    |      1     |         4        |
-    |      2     |         3        |  *three once-repeated {1,1} blocks with
-    ---------------------------------   different starting indices
-The maximal repetition corresponds to minimal information content.
+
+The maximized repetition corresponds to minimal information content.
 
 For contrast, consider the array
+
     {2,1,0,1,2,0}
-It has no repeating blocks, contiguous or not.
+
+It has no repeating blocks, which corresponds to maximized information content.
